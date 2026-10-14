@@ -97,6 +97,14 @@ function WorkOrders({ canEdit, canCreate, account, instance }: { canEdit: boolea
   const [statusEditor, setStatusEditor] = useState<WorkOrder | null>(null)
   const [statusDraft, setStatusDraft] = useState<OrderStatus>('ASSIGNED')
   const [observationsDraft, setObservationsDraft] = useState('')
+  const [dlqQueue, setDlqQueue] = useState<'email' | 'dispatch' | 'report'>('email')
+  const [dlqMode, setDlqMode] = useState<'invalid-json' | 'invalid-envelope'>('invalid-json')
+  const [dlqResult, setDlqResult] = useState('')
+  const sendDlqDemo = async (event: FormEvent) => {
+    event.preventDefault()
+    try { const result = await digitalFixApi.sendToDlq(instance, account, dlqQueue, dlqMode); setDlqResult(`Enviado → destino final ${result.expectedDlq}`); setError('') }
+    catch (err) { setDlqResult(''); setError(err instanceof Error ? err.message : 'No se pudo enviar a la DLQ') }
+  }
   const [form, setForm] = useState({ customerId: account.username, serviceId: '', title: '', description: '', address: '' })
 
   const load = () => { setLoading(true); digitalFixApi.listWorkOrders(instance, account, canEdit ? undefined : account.username).then(setOrders).catch((err) => setError(err.message)).finally(() => setLoading(false)) }
@@ -147,6 +155,18 @@ function WorkOrders({ canEdit, canCreate, account, instance }: { canEdit: boolea
         </tr>)}</tbody>
       </table>
     </section>
+    {canEdit && <div className="demo-rabbit" style={{ marginTop: 40 }}>
+      <details>
+        <summary style={{ cursor: 'pointer', fontSize: 12, opacity: 0.6 }}>Demo RabbitMQ (solo clase)</summary>
+        <form className="inline-form" onSubmit={sendDlqDemo}>
+          <span><b>Demo RabbitMQ</b> · provocar mensaje a DLQ</span>
+          <select value={dlqQueue} onChange={(event) => setDlqQueue(event.target.value as 'email' | 'dispatch' | 'report')}><option value="email">q.cmd.email</option><option value="dispatch">q.cmd.dispatch</option><option value="report">q.cmd.report</option></select>
+          <select value={dlqMode} onChange={(event) => setDlqMode(event.target.value as 'invalid-json' | 'invalid-envelope')}><option value="invalid-json">JSON inválido</option><option value="invalid-envelope">Envelope sin type/eventId</option></select>
+          <button className="secondary">Enviar a DLQ</button>
+          {dlqResult && <span>{dlqResult}</span>}
+        </form>
+      </details>
+    </div>}
     {statusEditor && <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setStatusEditor(null) }}>
       <section className="status-dialog" role="dialog" aria-modal="true" aria-labelledby="status-dialog-title">
         <button className="dialog-close icon-button" aria-label="Cerrar" onClick={() => setStatusEditor(null)}>×</button>

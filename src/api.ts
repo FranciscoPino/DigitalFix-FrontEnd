@@ -61,6 +61,8 @@ export const digitalFixApi = {
     request<WorkOrder>(instance, account, '/api/workorders', { method: 'POST', body: JSON.stringify(body) }),
   changeStatus: (instance: IPublicClientApplication, account: AccountInfo, id: string, status: OrderStatus, technicianId?: string, observations?: string) =>
     request<WorkOrder>(instance, account, `/api/workorders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status, technicianId, observations }) }),
+  sendToDlq: (instance: IPublicClientApplication, account: AccountInfo, queue: 'email' | 'dispatch' | 'report', mode: 'invalid-json' | 'invalid-envelope') =>
+    request<{ exchange: string; routingKey: string; mode: string; expectedDlq: string }>(instance, account, `/api/workorders/demo/dlq?queue=${queue}&mode=${mode}`, { method: 'POST' }),
   listServices: (instance: IPublicClientApplication, account: AccountInfo) =>
     request<CatalogService[]>(instance, account, '/api/catalog/services'),
   createService: (instance: IPublicClientApplication, account: AccountInfo, body: { code: string; name: string; description: string; rate: number }) =>
